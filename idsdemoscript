@@ -1,0 +1,62 @@
+//Prep
+
+#Clear IDS counters on NSX
+#Execute the following commands as root on nsxm04 ssh root@172.16.10.17 
+#Only send one command at a time
+
+service idps-reporting-service stop
+java -cp /usr/share/corfu/lib/corfudb-tools-0.3.0.20200313233648.4459-shaded.jar org.corfudb.browser.CorfuStoreBrowserMain --host=172.16.10.17 --port=9040 --namespace=security_data_service --tablename=ids_event_data --operation=dropTable --tlsEnabled=true --keystore=/config/cluster-manager/corfu/private/keystore.jks --ks_password=/config/cluster-manager/corfu/private/keystore.password --truststore=/config/cluster-manager/corfu/public/truststore.jks --truststore_password=/config/cluster-manager/corfu/public/truststore.password
+curl -X PUT -H "Content-Type: application/json" "localhost:9200/security_data_service_metadata/_doc/security_data_service?pretty" -d' {"clusterId" : "-1"}'
+service idps-reporting-service start
+
+
+#Make sure DFW policy wordpress is off
+
+
+
+//DFW
+
+#Login to nsxm04
+#Show Network topology
+#Browse to ilovensx
+#Under DFW activiate  deny any rule under wordpress policy
+#Refresh ilovensx, should be broken
+#Under DFW activiate the other rules in wordpress policy
+#Refresh ilovensx, should work
+
+
+//IDS
+
+#Go to security overview and show counter are zero for IDS
+#Go to IDS and explain setting/rules/exclusion
+
+
+//Attack
+
+#Log in to kali02  
+ssh root@172.16.10.46
+#do a wpscan to pull out info and username
+root@kali02:~# wpscan --url 172.20.10.20 -e u
+#during attack go back to IDS and show updates and find wpscan show up in details " ET WEB_SERVER WPScan User Agent "
+#go back to kali and should see admin username, repeat attack but with password dictionary attack
+root@kali02:~# wpscan --url 172.20.10.20 -U admin -P password.txt
+#during scan it will start the password attack. Go back to IDS and find event " ET SCAN Possible WordPress xmlrpc.php BruteForce in Progress - Response"
+
+//Remediation
+
+#Use terminal to quarantine web01
+python quarantine.py web01 an## <-----need to be some number
+#go to DFW under emergency category, web01 should be in quarantine group in quarantine policy
+#browse to ilovensx, should be dead, kali02 attack should be getting errors "request time out"
+#kill wpscan attack
+#Use terminal to unquarantine web01
+python safe.py web01 an## <-----need to be some number
+#go to DFW under emergency, web01 should not be in quarantine group in in quarantine policy
+#browse to ilovensx and it should work
+
+
+//clean up
+
+#Make sure Kali02 is not attacking
+#Make sure DFW wordpress policy is off
+
