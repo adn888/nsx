@@ -146,8 +146,6 @@ systemctl restart haproxy.service
 systemctl status haproxy.service
 systemctl enable haproxy.service
 
-
-
 #kali to transfer stuff
 scp root@web.lab:/home/html/kali-linux-2020.2-installer-amd64.iso /vmfs/volumes/5ea643cc-29786687-ecfd-00deadbeef31/iso
 scp kali-linux-2020.2-installer-amd64.iso root@web.lab:/vmfs/volumes/5ea643cc-29786687-ecfd-00deadbeef31/iso
