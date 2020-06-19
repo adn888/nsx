@@ -1,0 +1,153 @@
+//DB
+
+#VM PREP
+
+sudo su
+yum update -y
+yum install net-tools wget vim -y
+
+sudo systemctl stop firewalld
+sudo systemctl disable firewalld
+
+vim /etc/selinux/config
+
+#SELINUX=enforcing -------> SELINUX=disabled
+
+setenforce 0
+
+yum install mysql mariadb-server mariadb-devel -y
+
+systemctl start mariadb
+chkconfig mariadb on
+
+mysql -u root -p
+SELECT User, Host, Password FROM mysql.user;
+CREATE DATABASE wordpress;
+CREATE USER wp_svc@localhost;
+CREATE USER wp_svc@'%';
+SET PASSWORD FOR wp_svc@localhost=PASSWORD("Password123");
+SET PASSWORD FOR wp_svc@'%'=PASSWORD("Password123");
+GRANT ALL PRIVILEGES ON wordpress.* TO wp_svc@localhost IDENTIFIED BY 'Password123';
+GRANT ALL PRIVILEGES ON wordpress.* TO 'wp_svc'@'%' IDENTIFIED BY 'Password123';
+FLUSH PRIVILEGES;
+exit
+
+#To delete DB to restart wordpress
+#DROP DATABASE wordpress;
+
+//app
+
+sudo su
+yum update -y
+yum install  wget vim -y
+
+sudo systemctl stop firewalld
+sudo systemctl disable firewalld
+
+vim /etc/selinux/config
+
+#change SELINUX=enforcing -------> SELINUX=disabled
+
+setenforce 0
+
+yum install httpd php php-mysql -y
+
+cd /var/www/html
+wget https://wordpress.org/wordpress-5.1.1.tar.gz
+tar -xzf wordpress-5.1.1.tar.gz
+cp -r wordpress/* /var/www/html/
+rm -rf wordpress
+rm -rf wordpress-5.1.1.tar.gz
+chmod -R 755 wp-content
+chown -R apache:apache wp-content
+cp wp-config-sample.php wp-config.php
+
+vim wp-config.php
+
+define(‘DB_NAME’, ‘wordpress’);
+define(‘DB_USER’, ‘wp_svc’);
+define(‘DB_PASSWORD’, ‘Password123’);
+define(‘DB_HOST’, ‘172.20.12.20’);  <---------update with DB ip address
+
+
+service httpd start
+chkconfig httpd on
+
+#DO NOT GO TO WEBSITE, as it will store the IP address in the mariadb 
+#and won't use proxy. Delete wordpress db if you did.
+
+#to enable permalink
+Select in admin portal >>> setting > permalink
+
+create .htaccess in /var/www/html and copy config over
+ 
+sudo vim /etc/httpd/conf/httpd.conf
+
+<Directory "/var/www/html">
+    #
+    # Possible values for the Options directive are "None", "All",
+    # or any combination of:
+    #   Indexes Includes FollowSymLinks SymLinksifOwnerMatch ExecCGI MultiViews
+    #
+    # Note that "MultiViews" must be named *explicitly* --- "Options All"
+    # doesn't give it to you.
+    #
+    # The Options directive is both complicated and important.  Please see
+    # http://httpd.apache.org/docs/2.4/mod/core.html#options
+    # for more information.
+    #
+    Options Indexes FollowSymLinks
+
+    #
+    # AllowOverride controls what directives may be placed in .htaccess files.
+    # It can be "All", "None", or any combination of the keywords:
+    #   Options FileInfo AuthConfig Limit
+    #
+    AllowOverride All <<<-------
+
+
+sudo systemctl restart httpd
+
+//web
+
+sudo su
+yum update -y
+yum install net-tools wget vim -y
+
+sudo systemctl stop firewalld
+sudo systemctl disable firewalld
+
+vim /etc/selinux/config
+
+#change SELINUX=enforcing -------> SELINUX=disabled
+
+yum install -y haproxy
+
+vim /etc/haproxy/haproxy.cfg
+
+
+#<-- Add the following lines to bottom of file
+frontend proxynode 
+    bind *:80
+    stats uri /proxystats
+    default_backend wordpress
+backend wordpress
+    balance roundrobin
+    server app02.lab 172.20.11.20:80 check 
+#<-- Edit line above web IP addresses, port, and hostname
+listen stats
+    bind :9999
+    mode http
+    stats enable
+    stats hide-version
+    stats uri /stats
+
+systemctl restart haproxy.service
+systemctl status haproxy.service
+systemctl enable haproxy.service
+
+
+
+#kali to transfer stuff
+scp root@web.lab:/home/html/kali-linux-2020.2-installer-amd64.iso /vmfs/volumes/5ea643cc-29786687-ecfd-00deadbeef31/iso
+scp kali-linux-2020.2-installer-amd64.iso root@web.lab:/vmfs/volumes/5ea643cc-29786687-ecfd-00deadbeef31/iso
