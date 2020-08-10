@@ -1,49 +1,41 @@
 import requests
 import sys
 import json
+import login
 
+#inject varliables from cli
 
 vm = str(sys.argv[1])
 id = str(sys.argv[2])
 
-url = "https://172.16.10.17/api/v1/fabric/virtual-machines?included_fields=tags&included_fields=external_id&display_name="+ vm
+#variables
+nsxmanager = "https://172.16.10.17"
+nsxurla = "/api/v1/fabric/virtual-machines?included_fields=tags&included_fields=external_id&display_name=" + vm
+nsxheaders = {"Content-Type": "application/json"}
+nsxuser = login.username
+nsxpass = login.password
+nsxpayloads= {}
 
-payload = {}
-headers = {
-  'Authorization': 'Basic USERNAME',
-  'Cookie': 'PASSWORD'
-}
+#get VMID
 
-response = requests.request("GET", url, headers=headers, data = payload, verify=False)
+responsea = requests.request("GET", nsxmanager + nsxurla, headers=nsxheaders, auth=(nsxuser, nsxpass), data=nsxpayloads, verify=False)
 
-#print(response.text.encode('utf8'))
+a = responsea.json()
 
-a = response.json()
+print (a)
 
-#print(a)
-
-b = str(a['results'] [0]['external_id'])
-
-url = "https://172.16.10.17/policy/api/v1/infra/tags/tag-operations/"+id
-
-payload = "{\n  \"tag\": {\n    \"scope\": \"\",\n    \"tag\": \"quarantine\"\n   },\n  \"apply_to\": [\n    {\n         \"resource_type\": \"VirtualMachine\",\n         \"resource_ids\": [\n            \""+b+"\"\n          ]\n    }\n  ]\n}"
-headers = {
-  'Authorization': 'Basic USERNAME',
-  'Content-Type': 'application/json',
-  'Cookie': 'PASSWORD'
-}
-
-response = requests.request("PUT", url, headers=headers, data = payload, verify=False)
-
-print(response.text.encode('utf8'))
+vmid = str(a["results"] [0]["external_id"])
 
 
+#variables for tag api call
+nsxurlb = "/policy/api/v1/infra/tags/tag-operations/"+id
+nsxpayloadb = {"tag":{"scope":"","tag":"quarantine"},"apply_to":[{"resource_type":"VirtualMachine","resource_ids":[""+vmid+""]}]}
 
+#tag vm with quaratine
 
-#print(response.text.encode('utf8'))
+responseb = requests.request("PUT", nsxmanager + nsxurlb, headers=nsxheaders, auth=(nsxuser, nsxpass), data=json.dumps(nsxpayloadb), verify=False)
 
-#if __name__ == "__main__":
-
+print(responseb.text.encode('utf8'))
 
 
 
