@@ -64,11 +64,17 @@ cp wp-config-sample.php wp-config.php
 
 vim wp-config.php
 
-define(‘DB_NAME’, ‘wordpress’);
-define(‘DB_USER’, ‘wp_svc’);
-define(‘DB_PASSWORD’, ‘Password123’);
-define(‘DB_HOST’, ‘172.20.12.20’);  <---------update with DB ip address
+/** The name of the database for WordPress */
+define( 'DB_NAME', 'wordpress' );
 
+/** MySQL database username */
+define( 'DB_USER', 'wp_svc' );
+
+/** MySQL database password */
+define( 'DB_PASSWORD', 'Password123' );
+
+/** MySQL hostname */
+define( 'DB_HOST', '172.20.12.20' );  <---------update with DB ip address
 
 service httpd start
 chkconfig httpd on
